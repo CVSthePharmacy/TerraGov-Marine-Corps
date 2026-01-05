@@ -79,3 +79,39 @@
 
 /mob/living/carbon/xenomorph/get_iff_signal()
 	return xeno_iff_check()
+
+
+/mob/living/carbon/xenomorph/adjustToxLoss(amount)
+	return FALSE
+
+
+/mob/living/carbon/xenomorph/setToxLoss(amount)
+	return FALSE
+
+
+/mob/living/carbon/xenomorph/adjustCloneLoss(amount)
+	return FALSE
+
+
+/mob/living/carbon/xenomorph/setCloneLoss(amount)
+	return FALSE
+
+/mob/living/carbon/xenomorph/do_attack_animation(atom/A, visual_effect_icon, obj/item/used_item, no_effect)
+	if(eaten_mob)
+		return
+	. = ..()
+
+/mob/living/carbon/xenomorph/Move(atom/newloc, direction, glide_size_override)
+	. = ..()
+	var/mob/user = eaten_mob
+	if(user && HAS_TRAIT(user, TRAIT_HAULED)) //this trait lets us know if they are devoured or carried in a real lazy shitcode way, it just works.
+		user.forceMove(loc)
+
+/mob/living/carbon/xenomorph/forceMove(atom/destination)
+	. = ..()
+	var/mob/user = eaten_mob
+	if(user && HAS_TRAIT(user, TRAIT_HAULED))
+		if(!isturf(destination))
+			user.forceMove(src)
+		else
+			user.forceMove(loc)

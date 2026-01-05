@@ -258,7 +258,7 @@
 	plasma_stored = plasma_stored - value
 	if(plasma_stored < 0)
 		plasma_stored = 0
-		Paralyze(15 SECONDS) // 3 seconds after xeno paralyze resistance applied
+		Paralyze(45 SECONDS) // 15 seconds after xeno paralyze resistance applied
 	update_action_button_icons()
 	if(!update_plasma)
 		return
@@ -624,7 +624,8 @@
 	var/mob/living/carbon/victim = eaten_mob
 	eaten_mob = null
 	if(make_cocoon)
-		ADD_TRAIT(victim, TRAIT_PSY_DRAINED, TRAIT_PSY_DRAINED)
+		if(victim.stat == DEAD)
+			ADD_TRAIT(victim, TRAIT_PSY_DRAINED, TRAIT_PSY_DRAINED)
 		if(HAS_TRAIT(victim, TRAIT_UNDEFIBBABLE))
 			victim.med_hud_set_status()
 		new /obj/structure/cocoon(loc, hivenumber, victim)
@@ -669,4 +670,3 @@
 
 /mob/living/carbon/xenomorph/on_eord(turf/destination)
 	revive(TRUE)
-

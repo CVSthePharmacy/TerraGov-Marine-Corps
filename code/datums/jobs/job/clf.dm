@@ -62,8 +62,8 @@ Your primary goal is to serve the hive, and ultimate goal is to liberate the col
 		/datum/outfit/job/clf/medic/skorpion,
 		/datum/outfit/job/clf/medic/paladin,
 	)
-	access = list(ACCESS_MARINE_MEDBAY, ACCESS_MARINE_CHEMISTRY, ACCESS_CIVILIAN_MEDICAL, ACCESS_CLF_CARGO, ACCESS_CLF_TADPOLE, ACCESS_CLF_ENGINEERING, ACCESS_CLF_PRISON, ACCESS_CIVILIAN_PUBLIC)
-	minimal_access = list(ACCESS_MARINE_MEDBAY, ACCESS_MARINE_CHEMISTRY, ACCESS_CIVILIAN_MEDICAL, ACCESS_CLF_CARGO, ACCESS_CLF_TADPOLE, ACCESS_CLF_ENGINEERING, ACCESS_CLF_PRISON, ACCESS_CIVILIAN_PUBLIC)
+	access = ALL_CLF_ACCESS
+	minimal_access = ALL_CLF_ACCESS
 	jobworth = list(
 		/datum/job/terragov/squad/smartgunner = SMARTIE_POINTS_MEDIUM,
 		/datum/job/terragov/squad/corpsman = SMARTIE_POINTS_REGULAR,
@@ -128,6 +128,7 @@ Your primary goal is to serve the hive, and ultimate goal is to liberate the col
 	comm_title = "CLF0"
 	minimap_icon = "CLF0"
 	outfit = /datum/outfit/job/clf/breeder
+	skills_type = /datum/skills/slut/clf
 	job_flags = JOB_FLAG_ROUNDSTARTJOINABLE|JOB_FLAG_LATEJOINABLE|JOB_FLAG_ALLOWS_PREFS_GEAR|JOB_FLAG_PROVIDES_BANK_ACCOUNT|JOB_FLAG_OVERRIDELATEJOINSPAWN|JOB_FLAG_PROVIDES_SQUAD_HUD|JOB_FLAG_ADDTOMANIFEST
 	multiple_outfits = FALSE
 
@@ -144,8 +145,8 @@ Your primary goal is to serve the hive, and ultimate goal is to liberate the col
 	supervisors = "the xenomorphs and CLF"
 	total_positions = 1
 	skills_type = /datum/skills/synthetic
-	access = list(ACCESS_MARINE_MEDBAY, ACCESS_MARINE_CHEMISTRY, ACCESS_CIVILIAN_MEDICAL, ACCESS_CLF_CARGO, ACCESS_CLF_TADPOLE, ACCESS_CLF_ENGINEERING, ACCESS_CLF_PRISON, ACCESS_CIVILIAN_PUBLIC)
-	minimal_access = list(ACCESS_MARINE_MEDBAY, ACCESS_MARINE_CHEMISTRY, ACCESS_CIVILIAN_MEDICAL, ACCESS_CLF_CARGO, ACCESS_CLF_TADPOLE, ACCESS_CLF_ENGINEERING, ACCESS_CLF_PRISON, ACCESS_CIVILIAN_PUBLIC)
+	access = ALL_CLF_ACCESS
+	minimal_access = ALL_CLF_ACCESS
 	display_order = JOB_DISPLAY_ORDER_SYNTHETIC
 	outfit = /datum/outfit/job/civilian/synthetic/clf
 	exp_requirements = XP_REQ_EXPERIENCED
@@ -178,6 +179,18 @@ Your primary goal is to serve the hive, and ultimate goal is to liberate the col
 /datum/job/clf/silicon/synthetic/clf/return_spawn_type(datum/preferences/prefs)
 	if(prefs?.synthetic_type == "Early Synthetic")
 		return /mob/living/carbon/human/species/early_synthetic
+	if(prefs?.synthetic_type == "Robot")
+		switch(prefs?.robot_type)
+			if("Basic")
+				return /mob/living/carbon/human/species/robot
+			if("Hammerhead")
+				return /mob/living/carbon/human/species/robot/alpharii
+			if("Chilvaris")
+				return /mob/living/carbon/human/species/robot/charlit
+			if("Ratcher")
+				return /mob/living/carbon/human/species/robot/deltad
+			if("Sterling")
+				return /mob/living/carbon/human/species/robot/bravada
 	return /mob/living/carbon/human/species/synthetic
 
 /datum/job/clf/silicon/synthetic/clf/return_skills_type(datum/preferences/prefs)

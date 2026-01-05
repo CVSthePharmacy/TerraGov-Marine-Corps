@@ -335,13 +335,14 @@
 			if(!client && !get_ghost(TRUE)) // Nobody home, no ghost, must have disconnected while in their body
 				status_hud.overlays += "dead_noclient"
 			var/stage
-			switch(dead_ticks)
-				if(0 to 0.4 * TIME_BEFORE_DNR)
-					stage = 1
-				if(0.4 * TIME_BEFORE_DNR to 0.8 * TIME_BEFORE_DNR)
-					stage = 2
-				if(0.8 * TIME_BEFORE_DNR to INFINITY)
-					stage = 3
+			var/threshold_40 = 0.4 * GLOB.time_before_dnr
+			var/threshold_80 = 0.8 * GLOB.time_before_dnr
+			if(dead_ticks <= threshold_40)
+				stage = 1
+			else if(dead_ticks <= threshold_80)
+				stage = 2
+			else
+				stage = 3
 			status_hud.icon_state = "dead_defib[stage]"
 			return TRUE
 		if(UNCONSCIOUS)
@@ -619,10 +620,12 @@
 /datum/atom_hud/squad_icc
 	hud_icons = list(SQUAD_HUD_ICC, MACHINE_HEALTH_HUD, MACHINE_AMMO_HUD)
 
-/mob/proc/hud_set_job(faction = FACTION_TERRAGOV)
+/mob/proc/hud_set_job(faction)
 	return
 
-/mob/living/carbon/human/hud_set_job(faction = FACTION_TERRAGOV)
+/mob/living/carbon/human/hud_set_job(faction)
+	if(!faction)
+		faction = src.faction
 	var/hud_type = GLOB.faction_to_squad_hud[faction]
 	if(!hud_type)
 		return

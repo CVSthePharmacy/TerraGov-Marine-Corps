@@ -122,8 +122,7 @@
 		return
 
 	if(current_aura)
-		if(plasma_stored < pheromone_cost)
-			use_plasma(plasma_stored, FALSE)
+		if(plasma_stored < (pheromone_cost * seconds_per_tick * XENO_PER_SECOND_LIFE_MOD))
 			QDEL_NULL(current_aura)
 			src.balloon_alert(src, "no plasma, emitting stopped!")
 		else
@@ -200,7 +199,6 @@
 	if(!. || QDELING(src)) // For godmode / if they got gibbed via update_stat.
 		return
 	med_hud_set_health() // Todo: Make all damage update health so we can just kill pointless life updates entirely.
-	update_wounds()
 
 /mob/living/carbon/xenomorph/handle_slowdown()
 	if(slowdown)

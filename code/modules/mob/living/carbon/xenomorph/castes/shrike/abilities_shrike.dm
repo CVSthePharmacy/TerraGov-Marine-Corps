@@ -236,8 +236,6 @@
 	return ..()
 
 /datum/action/ability/activable/xeno/unrelenting_force/use_ability(atom/target)
-	succeed_activate()
-	add_cooldown()
 	addtimer(CALLBACK(owner, TYPE_PROC_REF(/mob, update_icons)), 1 SECONDS)
 	owner.icon_state = "[xeno_owner.xeno_caste.caste_name][xeno_owner.is_a_rouny ? " rouny" : ""] Screeching"
 	if(target) // Keybind use doesn't have a target
@@ -377,11 +375,11 @@
 		return FALSE
 	if(!check_distance(target, silent))
 		return FALSE
-	var/mob/living/patient = target
+/*	var/mob/living/patient = target
 	if(!CHECK_BITFIELD(use_state_flags|override_flags, ABILITY_IGNORE_DEAD_TARGET) && patient.stat == DEAD)
 		if(!silent)
 			to_chat(owner, span_warning("It's too late. This won't be coming back."))
-		return FALSE
+		return FALSE*/// We want xenomorphs to be able to heal the dead now
 
 /datum/action/ability/activable/xeno/psychic_cure/proc/check_distance(atom/target, silent)
 	var/dist = get_dist(owner, target)

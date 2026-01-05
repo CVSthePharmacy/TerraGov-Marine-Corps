@@ -844,8 +844,8 @@ So if we are on the 32th absolute pixel coordinate we are on tile 1, but if we a
 	var/hit_roll = rand(0, 99) //Our randomly generated roll
 
 	if(hit_chance > hit_roll) //Hit
-		if(hit_roll > (hit_chance-25)) //if you hit by a small margin, you hit a random bodypart instead of what you were aiming for
-			proj.def_zone = pick(GLOB.base_miss_chance)
+		if(hit_roll > (hit_chance-50)) //if you hit by a small margin, you hit a random bodypart instead of what you were aiming for
+			proj.def_zone = BODY_ZONE_CHEST
 		return TRUE
 
 	if(!lying_angle) //Narrow miss!
@@ -892,6 +892,27 @@ So if we are on the 32th absolute pixel coordinate we are on tile 1, but if we a
 		return FALSE
 	if(proj.ammo.ammo_behavior_flags & AMMO_SKIPS_ALIENS)
 		return FALSE
+	if((proj.ammo.ammo_behavior_flags & AMMO_SNIPER_TURRET) && proj.iff_signal)
+		var/datum/status_effect/incapacitating/recently_sniped/sniped = is_recently_sniped()
+		var/obj/item/weapon/gun/shooter = proj.shot_from
+
+		if(!isgun(proj.shot_from))
+			stack_trace("Got a non-gun projectile source while trying to apply sniper status effect! Source: [proj.shot_from]")
+			return ..()
+
+		if(sniped)
+			if(sniped.check_duration())
+				return ..()
+
+			sniped.duration = max(world.time + shooter.fire_delay, sniped.duration)
+
+			if(sniped.shooter != WEAKREF(shooter))//different gun shot us, apply the effect.
+				proj.damage = proj.damage * 0.1
+
+			sniped.shooter = WEAKREF(shooter)
+			return ..()
+
+		apply_status_effect(STATUS_EFFECT_SNIPED, shooter.fire_delay, WEAKREF(shooter))
 	return ..()
 
 ///visual and audio feedback for hits
@@ -981,6 +1002,10 @@ So if we are on the 32th absolute pixel coordinate we are on tile 1, but if we a
 	return TRUE
 
 /mob/living/carbon/xenomorph/bullet_act(atom/movable/projectile/proj)
+	if(!issamexenohive(proj.shot_from) && has_status_effect(STATUS_EFFECT_NO_HEALTH_REGEN))
+		remove_status_effect(STATUS_EFFECT_NO_HEALTH_REGEN)
+		no_health_regen_grace_period = TRUE
+		addtimer(CALLBACK(src, PROC_REF(grace_period_end)), 15 SECONDS)
 	if(issamexenohive(proj.shot_from) && (isxeno(proj.shot_from) || istype(proj.shot_from, /obj/structure/xeno))) //Aliens won't be harming allied aliens.
 		return
 
@@ -1006,6 +1031,9 @@ So if we are on the 32th absolute pixel coordinate we are on tile 1, but if we a
 		use_plasma(proj.ammo.plasma_drain)
 
 	return ..()
+
+/mob/living/carbon/xenomorph/proc/grace_period_end()
+	no_health_regen_grace_period = FALSE
 
 /atom/movable/projectile/hitscan
 	///The icon of the laser beam that will be created

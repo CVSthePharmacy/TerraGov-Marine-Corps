@@ -103,7 +103,7 @@
 	RegisterSignal(owner, COMSIG_XENOMORPH_POUNCE_END, PROC_REF(sneak_attack_pounce))
 	RegisterSignal(owner, COMSIG_XENO_LIVING_THROW_HIT, PROC_REF(mob_hit))
 	RegisterSignal(owner, COMSIG_XENOMORPH_ATTACK_LIVING, PROC_REF(sneak_attack_slash))
-	RegisterSignal(owner, COMSIG_XENOMORPH_DISARM_HUMAN, PROC_REF(sneak_attack_slash))
+	RegisterSignal(owner, COMSIG_XENOMORPH_DISARM_LIVING, PROC_REF(sneak_attack_slash))
 	RegisterSignal(owner, COMSIG_XENOMORPH_ZONE_SELECT, PROC_REF(sneak_attack_zone))
 	RegisterSignal(owner, COMSIG_XENOMORPH_PLASMA_REGEN, PROC_REF(plasma_regen))
 
@@ -141,7 +141,7 @@
 		COMSIG_XENOMORPH_POUNCE_END,
 		COMSIG_XENO_LIVING_THROW_HIT,
 		COMSIG_XENOMORPH_ATTACK_LIVING,
-		COMSIG_XENOMORPH_DISARM_HUMAN,
+		COMSIG_XENOMORPH_DISARM_LIVING,
 		COMSIG_XENOMORPH_LEAP_BUMP,
 		COMSIG_XENOMORPH_ATTACK_OBJ,
 		COMSIG_LIVING_IGNITED,
@@ -176,17 +176,20 @@
 ///Handles moving while in stealth
 /datum/action/ability/xeno_action/stealth/proc/handle_stealth_move()
 	SIGNAL_HANDLER
+	var/plasma_to_use
 	if(owner.m_intent == MOVE_INTENT_WALK)
-		xeno_owner.use_plasma(HUNTER_STEALTH_WALK_PLASMADRAIN * movement_cost_multiplier)
+		plasma_to_use = (HUNTER_STEALTH_WALK_PLASMADRAIN * movement_cost_multiplier)
 
 		xeno_owner.set_alpha_source(ALPHA_SOURCE_HUNTER_STEALTH, HUNTER_STEALTH_WALK_ALPHA)
 	else
-		xeno_owner.use_plasma(HUNTER_STEALTH_RUN_PLASMADRAIN * movement_cost_multiplier)
+		plasma_to_use = (HUNTER_STEALTH_RUN_PLASMADRAIN * movement_cost_multiplier)
 		xeno_owner.set_alpha_source(ALPHA_SOURCE_HUNTER_STEALTH, HUNTER_STEALTH_RUN_ALPHA)
 	//If we have 0 plasma after expending stealth's upkeep plasma, end stealth.
-	if(!xeno_owner.plasma_stored)
+	if(xeno_owner.plasma_stored < plasma_to_use)
 		to_chat(xeno_owner, span_xenodanger("We lack sufficient plasma to remain camouflaged."))
 		cancel_stealth()
+	else
+		xeno_owner.use_plasma(plasma_to_use)
 
 ///Updates or cancels stealth
 /datum/action/ability/xeno_action/stealth/proc/handle_stealth()
@@ -377,6 +380,7 @@
 	var/leap_pass_flags = PASS_LOW_STRUCTURE|PASS_FIRE|PASS_XENO
 
 /datum/action/ability/activable/xeno/pounce/New(Target)
+	. = ..()
 	desc = "Leap at your target up to [HUNTER_POUNCE_RANGE] tiles away, stunning them for [XENO_POUNCE_STUN_DURATION / (1 SECONDS)] seconds."
 
 /datum/action/ability/activable/xeno/pounce/on_cooldown_finish()
@@ -425,7 +429,7 @@
 
 	if(ishuman(living_target) && (angle_to_dir(Get_Angle(xeno_owner.throw_source, living_target)) in reverse_nearby_direction(living_target.dir)))
 		var/mob/living/carbon/human/human_target = living_target
-		if(!human_target.check_shields(COMBAT_TOUCH_ATTACK, 30, "melee"))
+		if(!human_target.check_shields(COMBAT_TOUCH_ATTACK, 30, "melee", shield_flags = SHIELD_FLAG_XENOMORPH))
 			xeno_owner.Paralyze(XENO_POUNCE_SHIELD_STUN_DURATION)
 			xeno_owner.set_throwing(FALSE)
 			return

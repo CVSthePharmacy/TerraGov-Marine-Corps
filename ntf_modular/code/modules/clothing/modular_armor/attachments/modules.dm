@@ -9,9 +9,9 @@
 	desc = "nomnomnom"
 	slot = ATTACHMENT_SLOT_MODULE
 	var/list/blocked_attack_types = list()
-	var/deflect_projectile = FALSE
 
-	var/overcharge_max_health = 325
+	max_shield_health = 40 //less than standard e shield by base
+	var/overcharge_max_health = 345
 
 	//pale ass but black-white absorbing/deflect light and shit like that.
 	shield_color_low = COLOR_DARKER_RED
@@ -22,7 +22,7 @@
 	var/last_warning_time
 	var/explode_on_overload = TRUE
 	///percent chance to go off without exploding.
-	var/auto_release_chance = 50
+	var/auto_release_chance = 75
 
 /obj/item/armor_module/module/eshield/absorbant/energy
 	name = "NT Voidwalker Anti-Energy Shield System"
@@ -32,10 +32,10 @@ converting the absorbed energy into shield power, warning: overcharging too much
 	soft_armor = list(MELEE = -10, BULLET = 0, LASER = -5, ENERGY = -5, BOMB = 0, BIO = -5, FIRE = 10, ACID = -5)
 
 ///Handles the interception of damage.
-/obj/item/armor_module/module/eshield/absorbant/intercept_damage(attack_type, incoming_damage, damage_type, silent)
+/obj/item/armor_module/module/eshield/absorbant/intercept_damage(attack_type, incoming_damage, damage_type, silent, shield_flags)
 	if(attack_type == COMBAT_TOUCH_ATTACK) //Touch attack so runners can pounce
 		return incoming_damage
-	if(attack_type == COMBAT_PROJ_ATTACK)
+	if(attack_type == COMBAT_PROJ_ATTACK || attack_type == COMBAT_MELEE_ATTACK)
 		if(incoming_damage <= 0)
 			return 0
 		var/found_type = FALSE
@@ -56,11 +56,10 @@ converting the absorbed energy into shield power, warning: overcharging too much
 				playsound(src.loc, 'sound/effects/airhiss.ogg', 40)
 			else
 				balloon_alert_to_viewers("shield break!")
-				affected.adjustStaminaLoss(400)
-				explosion(src.loc,0,0,2,3,2,0,2,smoke = TRUE,explosion_cause = src)
-			affected.remove_filter("eshield")
+				explosion(src.loc,0,0,0,3,0,0,0,smoke = TRUE,explosion_cause = src)
+			affected.remove_filter("eshield[shield_layer]")
 			STOP_PROCESSING(SSobj, src)
-			recharge_timer = addtimer(CALLBACK(src, PROC_REF(begin_recharge)), damaged_shield_cooldown * 3, TIMER_STOPPABLE|TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_NO_HASH_WAIT) //Gives it a bunch extra time for the cooldown.
+			recharge_timer = addtimer(CALLBACK(src, PROC_REF(begin_recharge)), damaged_shield_cooldown * 1.2, TIMER_STOPPABLE|TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_NO_HASH_WAIT) //Gives it a bunch extra time for the cooldown.
 			return (shield_left - overcharge_max_health)
 		if(shield_left > 0)
 			if(found_type ? (shield_health > max_shield_health) : (shield_health < max_shield_health))
@@ -73,7 +72,7 @@ converting the absorbed energy into shield power, warning: overcharging too much
 			else
 				level = shield_health / max_shield_health
 			current_color = gradient(0, shield_color_low, 0.5, shield_color_mid, 1, shield_color_full, 1.5, shield_color_overmax_full, 2, shield_color_overmax_full_danger, space = COLORSPACE_HCY, index = level)
-			affected.add_filter("eshield", 2, outline_filter(1, current_color))
+			affected.add_filter("eshield[shield_layer]", 2-shield_layer, outline_filter(1, current_color))
 
 			spark_system.start()
 			if(shield_health > (max_shield_health + ((overcharge_max_health - max_shield_health)/2)) && world.time > (last_warning_time + 2 SECONDS))
@@ -83,6 +82,7 @@ converting the absorbed energy into shield power, warning: overcharging too much
 			return 0
 		else
 			shield_health = 0
+			affected.remove_filter("eshield[shield_layer]")
 			STOP_PROCESSING(SSobj, src)
 			recharge_timer = addtimer(CALLBACK(src, PROC_REF(begin_recharge)), damaged_shield_cooldown + 1, TIMER_STOPPABLE|TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_NO_HASH_WAIT) //Gives it a little extra time for the cooldown.
 			return -shield_left
@@ -105,7 +105,7 @@ converting the absorbed energy into shield power, warning: overcharging too much
 	if(new_color != current_color)
 		current_color = new_color
 		var/mob/living/affected = parent.loc
-		affected.add_filter("eshield", 2, outline_filter(1, current_color))
+		affected.add_filter("eshield[shield_layer]", 2-shield_layer, outline_filter(1, current_color))
 	if(shield_health == max_shield_health) //Once health is full, we don't need to process until the next time we take damage.
 		STOP_PROCESSING(SSobj, src)
 

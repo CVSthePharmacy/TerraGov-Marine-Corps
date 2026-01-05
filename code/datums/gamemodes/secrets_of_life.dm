@@ -5,11 +5,11 @@
 	round_type_flags = MODE_INFESTATION|MODE_PSY_POINTS|MODE_PSY_POINTS_ADVANCED|MODE_HIJACK_POSSIBLE|MODE_SILO_RESPAWN|MODE_ALLOW_XENO_QUICKBUILD|MODE_MUTATIONS_OBTAINABLE|MODE_BIOMASS_POINTS|MODE_XENO_GRAB_DEAD_ALLOWED
 	shutters_drop_time = 15 MINUTES
 	xeno_abilities_flags = ABILITY_NUCLEARWAR
-	factions = list(FACTION_TERRAGOV, FACTION_SOM, FACTION_ALIEN, FACTION_XENO, FACTION_CLF, FACTION_ICC, FACTION_VSD)
-	human_factions = list(FACTION_TERRAGOV, FACTION_SOM, FACTION_CLF, FACTION_ICC, FACTION_VSD)
-	//NTC, SOM and CLF are significant factions which have req access so they get more members, others aren't as invested and get 1 squad but usually get stronger gear (they are ERT anyway.)
+	factions = list(FACTION_TERRAGOV, FACTION_SOM, FACTION_XENO, FACTION_CLF, FACTION_ICC, FACTION_VSD, FACTION_NANOTRASEN)
+	human_factions = list(FACTION_TERRAGOV, FACTION_SOM, FACTION_CLF, FACTION_ICC, FACTION_VSD, FACTION_NANOTRASEN)
 	valid_job_types = list(
 		/datum/job/terragov/command/ceo = 1,
+		/datum/job/terragov/command/nm_ceo = 1,
 		/datum/job/terragov/command/captain = 1,
 		/datum/job/terragov/command/fieldcommander = 1,
 		/datum/job/terragov/command/corpseccommander = 1,
@@ -28,7 +28,7 @@
 		/datum/job/terragov/security/security_officer = 6,
 		/datum/job/terragov/medical/researcher = 3,
 		/datum/job/terragov/civilian/liaison = 1,
-		/datum/job/terragov/silicon/synthetic = 3,
+		/datum/job/terragov/silicon/synthetic = 4,
 		/datum/job/terragov/silicon/ai = 1,
 		/datum/job/terragov/squad/engineer = 8,
 		/datum/job/terragov/squad/corpsman = 8,
@@ -57,6 +57,7 @@
 		/datum/job/survivor/stripper = -1,
 		/datum/job/survivor/maid = 3,
 		/datum/job/other/prisoner = 4,
+		/datum/job/survivor/synth = 2,
 		/datum/job/xenomorph = FREE_XENO_AT_START,
 		/datum/job/xenomorph/green = FREE_XENO_AT_START_CORRUPT,
 		/datum/job/xenomorph/queen = 1,
@@ -96,13 +97,91 @@
 		/datum/job/icc_squad/tech = 2,
 		/datum/job/icc_squad/spec = 2,
 		/datum/job/icc_squad/leader = 2,
+		/datum/job/terragov/civilian/liaison_archercorp = 1,
+		/datum/job/terragov/civilian/liaison_novamed = 1,
+		/datum/job/terragov/civilian/liaison_transco = 1,
+		/datum/job/icc/liaison_cm = 1,
+		/datum/job/clf/liaison_clf = 1,
+		/datum/job/som/civilian/liaison_som = 1,
+		/datum/job/vsd_squad/liaison_kaizoku = 1,
+		/datum/job/pmc/squad/standard = -1,
+		/datum/job/pmc/squad/medic = 2,
+		/datum/job/pmc/squad/engineer = 2,
+		/datum/job/pmc/squad/gunner = 1,
+		/datum/job/pmc/squad/sniper = 1,
+		/datum/job/pmc/squad/leader = 1,
 	)
 	enable_fun_tads = TRUE
 	xenorespawn_time = 2 MINUTES
 	respawn_time = 5 MINUTES
 	bioscan_interval = 30 MINUTES
 	deploy_time_lock = 15 SECONDS
+	var/list/datum/job/stat_restricted_jobs = list(/datum/job/survivor/prisoner,/datum/job/other/prisoner,/datum/job/other/prisonersom,/datum/job/other/prisonerclf)
 
+	var/pop_lock = FALSE //turns false post setup
+	evo_requirements = list(
+		/datum/xeno_caste/queen = 0,
+		/datum/xeno_caste/king = 0,
+		/datum/xeno_caste/dragon = 0,
+	)
+
+/datum/game_mode/infestation/extended_plus/secret_of_life/pre_setup()
+	. = ..()
+	RegisterSignals(SSdcs, list(COMSIG_GLOB_PLAYER_ROUNDSTART_SPAWNED, COMSIG_GLOB_PLAYER_LATE_SPAWNED), PROC_REF(things_after_spawn))
+
+/datum/game_mode/infestation/extended_plus/secret_of_life/proc/things_after_spawn(datum/source, mob/living/carbon/human/new_member)
+	SIGNAL_HANDLER
+	//no prisoner guns.
+	if(new_member.job in stat_restricted_jobs)
+		return
+	//we use pdas for this
+	var/datum/action/campaign_loadout/loadout = locate() in new_member.actions
+	if(loadout)
+		loadout.remove_action(new_member)
+
+/datum/game_mode/infestation/extended_plus/secret_of_life/proc/toggle_pop_locks()
+	// Apply Evolution Xeno Population Locks:
+	pop_lock = !pop_lock
+	var/sound_to_play = pop_lock ? pick('ntf_modular/sound/music/war_mode/hell_march_noearrape.ogg') : pick('ntf_modular/sound/music/war_mode/conflicttensionaltnoearrape.ogg', 'ntf_modular/sound/music/war_mode/konami-intro-metal-gear-solid.ogg')
+	if(pop_lock)
+		evo_requirements = list(
+			/datum/xeno_caste/queen = 8,
+			/datum/xeno_caste/king = 12,
+			/datum/xeno_caste/dragon = 12,
+		)
+		respawn_time = 10 MINUTES //we have cloning here so its not 30 minutes.
+		xenorespawn_time = 5 MINUTES
+		bioscan_interval = 15 MINUTES
+		round_type_flags &= ~MODE_XENO_GRAB_DEAD_ALLOWED
+		GLOB.time_before_dnr = 150
+	else
+		evo_requirements = list(
+			/datum/xeno_caste/queen = 0,
+			/datum/xeno_caste/king = 0,
+			/datum/xeno_caste/dragon = 0,
+		)
+		GLOB.time_before_dnr = 1300
+		respawn_time = initial(respawn_time)
+		xenorespawn_time = initial(xenorespawn_time)
+		bioscan_interval = initial(bioscan_interval)
+		round_type_flags |= MODE_XENO_GRAB_DEAD_ALLOWED
+
+	for(var/datum/xeno_caste/caste AS in evo_requirements)
+		GLOB.xeno_caste_datums[caste][XENO_UPGRADE_BASETYPE].evolve_min_xenos = evo_requirements[caste]
+	send_ooc_announcement(
+		sender_override = "[pop_lock ? "Heats of conflict are rising." : "Heat of conflict is likely dying out."]",
+		title = "[pop_lock ? "It's so over." : "Back to typefucking."]",
+		text = "Pop locks for xeno castes, DNR time, recloning rate, dead dragging, respawn timers, bioscans and possibly other things will be affected.",
+		sound_override = sound_to_play,
+		style = OOC_ALERT_GAME,
+	)
+	SSvote.initiate_vote()
+
+/*
+
+alt gamemodes
+
+*/
 /datum/game_mode/infestation/extended_plus/secret_of_life/nosub
 	name = "Secret of Life - No subfactions"
 	config_tag = "Secret of Life - No Subfactions"
@@ -166,6 +245,11 @@
 		/datum/job/som/squad/leader = 2,
 		/datum/job/som/squad/veteran = 3,
 		/datum/job/other/prisonersom = 2,
+		/datum/job/terragov/civilian/liaison_archercorp = 1,
+		/datum/job/terragov/civilian/liaison_novamed = 1,
+		/datum/job/terragov/civilian/liaison_transco = 1,
+		/datum/job/clf/liaison_clf = 1,
+		/datum/job/som/civilian/liaison_som = 1,
 	)
 
 //old school mode, no ship, one map with bases in it, no subfactions.
@@ -234,6 +318,11 @@
 		/datum/job/som/squad/leader = 2,
 		/datum/job/som/squad/veteran = 3,
 		/datum/job/other/prisonersom = 2,
+		/datum/job/terragov/civilian/liaison_archercorp = 1,
+		/datum/job/terragov/civilian/liaison_novamed = 1,
+		/datum/job/terragov/civilian/liaison_transco = 1,
+		/datum/job/clf/liaison_clf = 1,
+		/datum/job/som/civilian/liaison_som = 1,
 	)
 
 /datum/game_mode/infestation/extended_plus/secret_of_life/alienonly
@@ -274,6 +363,9 @@
 		/datum/job/other/prisoner = 4,
 		/datum/job/xenomorph = FREE_XENO_AT_START,
 		/datum/job/xenomorph/queen = 1,
+		/datum/job/terragov/civilian/liaison_archercorp = 1,
+		/datum/job/terragov/civilian/liaison_novamed = 1,
+		/datum/job/terragov/civilian/liaison_transco = 1,
 	)
 
 /datum/game_mode/infestation/extended_plus/secret_of_life/ntf_vs_clf
@@ -283,6 +375,7 @@
 	human_factions = list(FACTION_TERRAGOV, FACTION_CLF)
 	valid_job_types = list(
 		/datum/job/terragov/command/ceo = 1,
+		/datum/job/terragov/command/nm_ceo = 1,
 		/datum/job/terragov/command/captain = 1,
 		/datum/job/terragov/command/fieldcommander = 1,
 		/datum/job/terragov/command/corpseccommander = 1,
@@ -329,6 +422,7 @@
 		/datum/job/survivor/prisoner = 4,
 		/datum/job/survivor/stripper = -1,
 		/datum/job/survivor/maid = 4,
+		/datum/job/survivor/synth = 1,
 		/datum/job/other/prisoner = 4,
 		/datum/job/xenomorph = FREE_XENO_AT_START,
 		/datum/job/xenomorph/green = FREE_XENO_AT_START_CORRUPT,
@@ -341,4 +435,8 @@
 		/datum/job/clf/leader = 2,
 		/datum/job/clf/silicon/synthetic/clf = 1,
 		/datum/job/other/prisonerclf = 2,
+		/datum/job/terragov/civilian/liaison_archercorp = 1,
+		/datum/job/terragov/civilian/liaison_novamed = 1,
+		/datum/job/terragov/civilian/liaison_transco = 1,
+		/datum/job/clf/liaison_clf = 1,
 	)

@@ -12,8 +12,8 @@
 
 #define PHORON_CRATE_SELL_AMOUNT 25
 #define PLATINUM_CRATE_SELL_AMOUNT 75
-#define PHORON_DROPSHIP_BONUS_AMOUNT 15
-#define PLATINUM_DROPSHIP_BONUS_AMOUNT 25
+#define PHORON_DROPSHIP_BONUS_AMOUNT 25
+#define PLATINUM_DROPSHIP_BONUS_AMOUNT 75
 ///Resource generator that produces a certain material that can be repaired by marines and attacked by xenos, Intended as an objective for marines to play towards to get more req gear
 /obj/machinery/miner
 	name = "\improper Ninetails phoron Mining Well"
@@ -140,7 +140,7 @@
 			max_miner_integrity = 300
 			miner_integrity = 300
 		if(MINER_OVERCLOCKED)
-			required_ticks = 60
+			required_ticks = 35
 		if(MINER_AUTOMATED)
 			if(stored_mineral)
 				SSpoints.add_supply_points(faction, mineral_value * stored_mineral) //NTF edit. Forcibly caps req points.
@@ -297,6 +297,13 @@
 			. += span_info("It's lightly damaged, and you can see some dents and loose piping.</span>\n<span class='info'>Use a wrench to repair it.")
 		if(MINER_RUNNING)
 			. += span_info("[src]'s storage module displays [stored_mineral] crates are ready to be exported.")
+	. += span_info("Each crate it produces is worth [mineral_value] supply points and [dropship_bonus] dropship points.")
+	if(miner_upgrade_type == MINER_OVERCLOCKED)
+		. += span_info("Due to its upgrade, it produces one crate each [required_ticks*2] seconds, or [mineral_value*((1 HOURS / (2 SECONDS))/required_ticks)] supply points per hour.")
+		. += span_info("Without its upgrade, it would produce one crate each [initial(required_ticks)*2] seconds, or [mineral_value*((1 HOURS / (2 SECONDS))/initial(required_ticks))] supply points per hour.")
+	else
+		. += span_info("It produces one crate each [required_ticks*2] seconds, or [mineral_value*((1 HOURS / (2 SECONDS))/required_ticks)] supply points per hour.")
+
 
 /obj/machinery/miner/attack_hand(mob/living/user)
 	if(miner_status != MINER_RUNNING)
@@ -315,6 +322,10 @@
 	do_sparks(5, TRUE, src)
 	playsound(loc,'sound/effects/phasein.ogg', 50, FALSE)
 	say("Ore shipment has been sold for [mineral_value * stored_mineral] points.")
+	var/datum/game_mode/infestation/extended_plus/secret_of_life/gaymode = SSticker.mode
+	if(gaymode)
+		var/datum/individual_stats/the_stats = gaymode.stat_list[user.faction].get_player_stats(user)
+		the_stats.give_funds(round((dropship_bonus * stored_mineral)/2))
 	stored_mineral = 0
 	start_processing()
 
